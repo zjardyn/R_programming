@@ -1,0 +1,192 @@
+---
+title: "example_script"
+output:
+  pdf_document: default
+  html_document: default
+date: "2024-01-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(rvest)
+```
+
+## HTML
+
+HTML stands for HyperText Markup Language.
+
+Elements consist of:
+
+* Start tag `<tag>` 
+* Optional attributes `id='first'`
+* End tag `<\tag>` 
+
+Contents is anything in between start and end tags.
+
+```
+<html>
+<head>
+  <title>Page title</title>
+</head>
+<body>
+  <h1 id='first'>A heading</h1>
+  <p>Some text &amp; <b>some bold text.</b></p>
+  <img src='myimg.png' width='100' height='100'>
+</body>
+```
+There are over 100 HTML tags. 
+
+Important Ones: 
+
+* `<html>` - HTML pages must be in an `<html>` element, and it must have two children.
+* `<head>` - Contains metadata like the page title.
+* `<body>` - Contains the content you see in the browser. 
+
+These blocks form the structure of the page:
+
+* `<h1> ` - (heading 1) 
+* `<section>` - (section) 
+* `<p>`  - (paragraph) 
+* `<ol>` - (ordered list) 
+
+The `<div> ` tag is a container or a division element to group other HTML elements together.
+
+These blocks format text inside block tags:
+
+* `<b>` - bold
+* `<i>` - italics
+* `<a>` - link 
+
+Most elements can have content in between their start and stop tags. 
+
+`<p>
+  Hi! My <b>name</b> is Zjardyn.
+</p>
+`
+
+The children are the elements it contains, so p element above has one child, the b element.
+In this context, the b element has no children but it does have contents. 
+
+Tags can have attributes:
+* `name1 = 'value1' name2='value'`
+
+The two most important attributes are id and class, which are used in conjunction with CSS (Cascading Style Sheets)  to control visual appearance of the page. These are often useful when scraping the page.   
+## Extracting Data
+
+```{r}
+html <- read_html("http://rvest.tidyverse.org/")
+html
+```
+
+You can also write 
+
+```{r}
+html <- minimal_html("
+  <p>This is a paragraph</p>
+  <ul>
+    <li>This is a bulleted list</li>
+  </ul>
+")
+html
+```
+
+## Find elements
+
+CSS selectors:
+
+* `p` selects all p elements. 
+* `.title` selects all elements with `class` "title".
+* `#title` selects the element with the id attribute that equals "title". Id attributes must be unique.
+
+```{r}
+html <- minimal_html("
+  <h1>This is a heading</h1>
+  <p id='first'>This is a paragraph</p>
+  <p class='important'>This is an important paragraph</p>
+")
+```
+
+Use `html_elements()` to find all the elements that match the selector. 
+ 
+```{r}
+html |> html_elements("p")
+html |> html_elements(".important")
+html |> html_elements("#first")
+```
+
+Use `html_element()` to return the same number of outputs as inputs
+
+```{r}
+html |> html_element("p")
+```
+
+There is a distinction between using these functions when you use a selector that doesn't match any values.
+
+* `html_value()` returns a missing value. 
+* `html_values()`returns a vector of length 0. 
+
+```{r}
+html |> html_elements("b")
+html |> html_element("b")
+```
+
+## Nesting selections
+
+In most cases you use `html_elements` and `html_element` together.
+
+* `html_elements` to identify elements that will become observations.
+* `html_element` to find elements that will become variables.
+
+```{r}
+html <- minimal_html("
+  <ul>
+    <li><b>C-3PO</b> is a <i>droid</i> that weighs <span class='weight'>167 kg</span></li>
+    <li><b>R4-P17</b> is a <i>droid</i></li>
+    <li><b>R2-D2</b> is a <i>droid</i> that weighs <span class='weight'>96 kg</span></li>
+    <li><b>Yoda</b> weighs <span class='weight'>66 kg</span></li>
+  </ul>
+  ")
+```
+
+
+Use html_elements to make a vector where each element corresponds to a different character:
+```{r}
+characters <- html |> html_elements("li")
+characters
+```
+
+To extract the name of each character, use html_element. It is guaranteed to return one response per element.
+
+```{r}
+characters |> html_element("b")
+```
+
+The distinction between html_element and html elements is import for weight. We want one weight for each character, even if there's no weight <span> 
+```{r}
+characters |> html_element(".weight")
+```
+
+html_elements() finds all weight <span>s that are children of characters. 
+
+```{r}
+characters |> html_elements(".weight")
+```
+
+## Text and attributes
+ 
+`html_text2()` extracts plain text contents of an HTML element:
+```{r}
+characters |> 
+  html_element("b") |> 
+  html_text2()
+
+characters |> 
+  html_element(".weight") |> 
+  html_text2()
+```
+
+
+
